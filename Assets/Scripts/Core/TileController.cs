@@ -3,9 +3,7 @@ using UnityEngine.UI;
 
 namespace MahjongGame.Core
 {
-	/// <summary>
-	/// Контроллер отдельной плитки в игре Mahjong
-	/// </summary>
+
 	public class TileController : MonoBehaviour
 	{
 		[Header("Компоненты")]
