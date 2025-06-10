@@ -3,42 +3,39 @@ using UnityEngine.UI;
 
 namespace MahjongGame.Core
 {
-
 	public class TileController : MonoBehaviour
 	{
 		[Header("Компоненты")]
-		[SerializeField] private Button tileButton; 
-		[SerializeField] private Image backgroundImage; 
+		[SerializeField] private Image backgroundImage;
 		[SerializeField] private Image iconImage; 
-		[SerializeField] private CanvasGroup canvasGroup; 
+		[SerializeField] private Button button; 
+		[SerializeField] private CanvasGroup canvasGroup;
 
-		[Header("Настройки визуала")]
-		[SerializeField] private Color normalColor = Color.white; 
-		[SerializeField] private Color blockedColor = new Color(0.6f, 0.6f, 0.6f, 1f); // Цвет заблокированной плитки
-		[SerializeField] private Color selectedColor = new Color(1f, 1f, 0.5f, 1f); // Цвет выбранной плитки
+		[Header("Визуальные настройки")]
+		[SerializeField] private Color normalColor = Color.white;
+		[SerializeField] private Color blockedColor = new Color(0.6f, 0.6f, 0.6f);
+		[SerializeField] private Color selectedColor = new Color(1f, 1f, 0.5f);
 
-		private int tileID; 
+		private int tileTypeID; 
 		private bool isBlocked = false; 
 		private bool isSelected = false; 
 		private Vector2Int gridPosition; 
 		private int layerIndex; 
 
-		public int TileID => tileID;
-
-		public Vector2Int GridPosition => gridPosition;
-
-		public int LayerIndex => layerIndex;
-
 		public bool IsBlocked => isBlocked;
 
-	
-		public bool IsSelected => isSelected;
+		public int TileTypeID => tileTypeID;
 
 		private void Awake()
 		{
-			if (tileButton == null) tileButton = GetComponent<Button>();
-			if (backgroundImage == null) backgroundImage = GetComponent<Image>();
-			if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
+			if (backgroundImage == null)
+				backgroundImage = GetComponent<Image>();
+
+			if (button == null)
+				button = GetComponent<Button>();
+
+			if (canvasGroup == null)
+				canvasGroup = GetComponent<CanvasGroup>();
 
 			if (iconImage == null)
 			{
@@ -48,27 +45,23 @@ namespace MahjongGame.Core
 			}
 		}
 
-		public void Initialize(int id, Sprite iconSprite, Vector2Int position, int layer)
+		public void Initialize(int typeID, Sprite iconSprite, Vector2Int gridPos, int layer)
 		{
-			tileID = id;
-			gridPosition = position;
+			tileTypeID = typeID;
+			gridPosition = gridPos;
 			layerIndex = layer;
 
-			if (iconImage != null && iconSprite != null)
+			if (iconSprite != null && iconImage != null)
 			{
 				iconImage.sprite = iconSprite;
 			}
 
-			SetSelected(false);
 			UpdateVisualState();
 		}
 
 		public void SetBlocked(bool blocked)
 		{
 			isBlocked = blocked;
-
-			tileButton.interactable = !blocked;
-
 			UpdateVisualState();
 		}
 
@@ -77,33 +70,50 @@ namespace MahjongGame.Core
 			isSelected = selected;
 			UpdateVisualState();
 		}
+
 		private void UpdateVisualState()
 		{
-			if (isBlocked)
+			if (backgroundImage != null)
 			{
-				backgroundImage.color = blockedColor;
-				canvasGroup.alpha = 0.7f;
+				if (isSelected)
+				{
+					backgroundImage.color = selectedColor;
+				}
+				else if (isBlocked)
+				{
+					Color iconColor = iconImage.color;
+					iconColor.a = isBlocked ? 0.3f : 1f;
+					iconImage.color = iconColor;
+				}
+				else
+				{
+					backgroundImage.color = normalColor;
+				}
 			}
-			else if (isSelected)
+
+			if (button != null)
 			{
-				backgroundImage.color = selectedColor;
-				canvasGroup.alpha = 1f;
+				button.interactable = !isBlocked;
 			}
-			else
+
+			if (canvasGroup != null)
 			{
-				backgroundImage.color = normalColor;
-				canvasGroup.alpha = 1f;
+				canvasGroup.alpha = isBlocked ? 0.6f : 1f;
+			}
+
+			if (iconImage != null)
+			{
+				iconImage.enabled = !isBlocked;
 			}
 		}
 
+		public Image GetIconImage()
+		{
+			return iconImage;
+		}
 		public void RemoveTile()
 		{
 			gameObject.SetActive(false);
-		}
-
-		public bool IsMatchWith(TileController other)
-		{
-			return other != null && other.tileID == this.tileID && other != this;
 		}
 	}
 }

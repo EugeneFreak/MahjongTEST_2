@@ -5,7 +5,6 @@ using System.Linq;
 
 namespace MahjongGame.Core
 {
-
 	public class LevelManager : MonoBehaviour
 	{
 		[Header("Конфигурация")]
@@ -14,14 +13,16 @@ namespace MahjongGame.Core
 		[SerializeField] private float tileSize = 120f; 
 		[SerializeField] private float tileSpacing = 5f;
 
-		[Header("Отладка")]
-		[SerializeField] private bool showDebugInfo = true; 
-
-		private List<TileInfo[,]> gridLayers; 
-		private List<TileInfo> allTiles; 
-		private Dictionary<int, List<TileInfo>> tilesByType;
+		private List<TileInfo[,]> gridLayers; // Сетка для каждого слоя [слой][x,y]
+		private List<TileInfo> allTiles; // Все плитки в игре
+		private Dictionary<int, List<TileInfo>> tilesByType; // Плитки по типам
 
 		public List<TileInfo> AllTiles => allTiles.Where(t => t.controller.gameObject.activeSelf).ToList();
+
+		public LevelConfiguration GetLevelConfig()
+		{
+			return levelConfig;
+		}
 
 		private void Awake()
 		{
@@ -37,16 +38,9 @@ namespace MahjongGame.Core
 				tilesContainer = container.transform;
 			}
 		}
-
 		public void GenerateLevel()
 		{
 			ClearLevel();
-
-			if (levelConfig == null || levelConfig.tilePrefabs.Count == 0)
-			{
-				Debug.LogError("Не настроена конфигурация уровня или нет префабов плиток!");
-				return;
-			}
 
 			int totalPositions = 0;
 			foreach (var layer in levelConfig.layers)
@@ -73,15 +67,29 @@ namespace MahjongGame.Core
 							int tileType = tileTypes[tileIndex];
 							GameObject tilePrefab = levelConfig.tilePrefabs[tileType % levelConfig.tilePrefabs.Count];
 
+							Sprite iconSprite = null;
+							var prefabController = tilePrefab.GetComponent<TileController>();
+							if (prefabController != null)
+							{
+								var iconTransform = tilePrefab.transform.Find("Icon");
+								if (iconTransform != null)
+								{
+									var iconImage = iconTransform.GetComponent<Image>();
+									if (iconImage != null)
+									{
+										iconSprite = iconImage.sprite;
+									}
+								}
+							}
+
 							Vector3 position = CalculateTilePosition(x, y, layerIndex);
 							GameObject tileObj = Instantiate(tilePrefab, tilesContainer);
 							tileObj.transform.localPosition = position;
-							tileObj.name = $"Tile_L{layerIndex}_X{x}_Y{y}";
 
 							TileController controller = tileObj.GetComponent<TileController>();
 							if (controller != null)
 							{
-								controller.Initialize(tileType, null, new Vector2Int(x, y), layerIndex);
+								controller.Initialize(tileType, iconSprite, new Vector2Int(x, y), layerIndex);
 
 								TileInfo tileInfo = new TileInfo(controller, new Vector2Int(x, y), layerIndex, tileType);
 								grid[x, y] = tileInfo;
@@ -103,13 +111,9 @@ namespace MahjongGame.Core
 						}
 					}
 				}
-
 				gridLayers.Add(grid);
 			}
-
 			UpdateAllTilesBlockState();
-
-			Debug.Log($"Уровень сгенерирован: {totalPositions} плиток, {levelConfig.layers.Count} слоев");
 		}
 
 		public void ClearLevel()
@@ -131,7 +135,6 @@ namespace MahjongGame.Core
 
 			if (totalPositions % 2 != 0)
 			{
-				Debug.LogWarning("Нечетное количество позиций! Уменьшаем на 1");
 				totalPositions--;
 			}
 
@@ -156,7 +159,6 @@ namespace MahjongGame.Core
 
 			return types;
 		}
-
 		private void ShuffleList<T>(List<T> list)
 		{
 			for (int i = 0; i < list.Count; i++)
@@ -190,11 +192,13 @@ namespace MahjongGame.Core
 			if (tileIndex < 0 || tileIndex >= allTiles.Count) return;
 
 			TileInfo clickedTile = allTiles[tileIndex];
-			if (clickedTile.controller.IsBlocked) return;
 
-			Debug.Log($"Клик по плитке: {clickedTile.controller.name}, Тип: {clickedTile.tileTypeID}");
+			GameManager gameManager = FindObjectOfType<GameManager>();
+			if (gameManager != null)
+			{
+				gameManager.OnTileClicked(clickedTile.controller);
+			}
 		}
-
 		public void UpdateAllTilesBlockState()
 		{
 			foreach (var tile in allTiles)
@@ -221,7 +225,6 @@ namespace MahjongGame.Core
 
 		private bool HasTileAbove(TileInfo tile)
 		{
-
 			for (int layer = tile.layerIndex + 1; layer < gridLayers.Count; layer++)
 			{
 				var grid = gridLayers[layer];
@@ -278,6 +281,56 @@ namespace MahjongGame.Core
 		public TileInfo GetTileInfo(TileController controller)
 		{
 			return allTiles.FirstOrDefault(t => t.controller == controller);
+		}
+
+		public void ReshuffleTiles()
+		{
+			var activeTiles = AllTiles;
+			List<int> tileTypes = new List<int>();
+
+			foreach (var tile in activeTiles)
+			{
+				tileTypes.Add(tile.tileTypeID);
+			}
+
+			ShuffleList(tileTypes);
+
+			for (int i = 0; i < activeTiles.Count; i++)
+			{
+				var tile = activeTiles[i];
+				int newType = tileTypes[i];
+
+				tile.tileTypeID = newType;
+
+				if (levelConfig != null && levelConfig.tilePrefabs.Count > newType)
+				{
+					var prefab = levelConfig.tilePrefabs[newType];
+					var prefabController = prefab.GetComponent<TileController>();
+					if (prefabController != null)
+					{
+						var iconTransform = prefab.transform.Find("Icon");
+						if (iconTransform != null)
+						{
+							var iconImage = iconTransform.GetComponent<Image>();
+							if (iconImage != null && tile.controller.GetIconImage() != null)
+							{
+								tile.controller.GetIconImage().sprite = iconImage.sprite;
+							}
+						}
+					}
+				}
+
+				tile.controller.Initialize(newType, tile.controller.GetIconImage()?.sprite, tile.gridPosition, tile.layerIndex);
+			}
+
+			tilesByType.Clear();
+			foreach (var tile in activeTiles)
+			{
+				if (!tilesByType.ContainsKey(tile.tileTypeID))
+					tilesByType[tile.tileTypeID] = new List<TileInfo>();
+				tilesByType[tile.tileTypeID].Add(tile);
+			}
+
 		}
 	}
 }

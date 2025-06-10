@@ -270,9 +270,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9712ad2f76d06442a0719883b7003b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileButton: {fileID: 3849144970966795867}
   backgroundImage: {fileID: 8879727196541666113}
   iconImage: {fileID: 5191269445507442828}
+  button: {fileID: 0}
   canvasGroup: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   blockedColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
