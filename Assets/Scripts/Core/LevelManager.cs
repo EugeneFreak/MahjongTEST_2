@@ -13,9 +13,9 @@ namespace MahjongGame.Core
 		[SerializeField] private float tileSize = 120f; 
 		[SerializeField] private float tileSpacing = 5f;
 
-		private List<TileInfo[,]> gridLayers; // Сетка для каждого слоя [слой][x,y]
-		private List<TileInfo> allTiles; // Все плитки в игре
-		private Dictionary<int, List<TileInfo>> tilesByType; // Плитки по типам
+		private List<TileInfo[,]> gridLayers; 
+		private List<TileInfo> allTiles;
+		private Dictionary<int, List<TileInfo>> tilesByType;
 
 		public List<TileInfo> AllTiles => allTiles.Where(t => t.controller.gameObject.activeSelf).ToList();
 

@@ -1289,7 +1289,7 @@ MonoBehaviour:
   levelConfig: {fileID: 11400000, guid: 5b2dec75318648041a652ebafd3803d8, type: 2}
   tilesContainer: {fileID: 0}
   tileSize: 120
-  tileSpacing: 5
+  tileSpacing: 15
 --- !u!1 &4223255317234460411
 GameObject:
   m_ObjectHideFlags: 0
