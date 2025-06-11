@@ -7,8 +7,8 @@ namespace MahjongGame.Core
 	{
 		[Header("Компоненты")]
 		[SerializeField] private Image backgroundImage;
-		[SerializeField] private Image iconImage; 
-		[SerializeField] private Button button; 
+		[SerializeField] private Image iconImage;
+		[SerializeField] private Button button;
 		[SerializeField] private CanvasGroup canvasGroup;
 
 		[Header("Визуальные настройки")]
@@ -16,14 +16,13 @@ namespace MahjongGame.Core
 		[SerializeField] private Color blockedColor = new Color(0.6f, 0.6f, 0.6f);
 		[SerializeField] private Color selectedColor = new Color(1f, 1f, 0.5f);
 
-		private int tileTypeID; 
-		private bool isBlocked = false; 
-		private bool isSelected = false; 
-		private Vector2Int gridPosition; 
-		private int layerIndex; 
+		private int tileTypeID;
+		private bool isBlocked = false;
+		private bool isSelected = false;
+		private Vector2Int gridPosition;
+		private int layerIndex;
 
 		public bool IsBlocked => isBlocked;
-
 		public int TileTypeID => tileTypeID;
 
 		private void Awake()
@@ -51,7 +50,7 @@ namespace MahjongGame.Core
 			gridPosition = gridPos;
 			layerIndex = layer;
 
-			if (iconSprite != null && iconImage != null)
+			if (iconImage != null && iconSprite != null)
 			{
 				iconImage.sprite = iconSprite;
 			}
@@ -81,9 +80,7 @@ namespace MahjongGame.Core
 				}
 				else if (isBlocked)
 				{
-					Color iconColor = iconImage.color;
-					iconColor.a = isBlocked ? 0.3f : 1f;
-					iconImage.color = iconColor;
+					backgroundImage.color = blockedColor;
 				}
 				else
 				{
@@ -103,7 +100,9 @@ namespace MahjongGame.Core
 
 			if (iconImage != null)
 			{
-				iconImage.enabled = !isBlocked;
+				Color iconColor = iconImage.color;
+				iconColor.a = (isBlocked && !isSelected) ? 0.5f : 1f;
+				iconImage.color = iconColor;
 			}
 		}
 
@@ -111,6 +110,7 @@ namespace MahjongGame.Core
 		{
 			return iconImage;
 		}
+
 		public void RemoveTile()
 		{
 			gameObject.SetActive(false);

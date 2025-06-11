@@ -67,7 +67,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6019484917286266167
 RectTransform:
   m_ObjectHideFlags: 0
@@ -160,7 +160,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &426733680377659798
 RectTransform:
   m_ObjectHideFlags: 0
@@ -820,7 +820,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &3464965572179852297
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1248,7 +1248,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4349661199818503327}
   - component: {fileID: 4476007054007611962}
-  - component: {fileID: 2035429317558769195}
   m_Layer: 5
   m_Name: LevelSystem
   m_TagString: Untagged
@@ -1287,24 +1286,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe221f1cc3519064c86079cd158e0d5d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  levelConfig: {fileID: 11400000, guid: 5b2dec75318648041a652ebafd3803d8, type: 2}
-  tilesContainer: {fileID: 0}
-  tileSize: 120
+  levelConfig: {fileID: 11400000, guid: a9f5fc08254c4a8438e490ec1c49ed34, type: 2}
+  tilesContainer: {fileID: 5478290149228910036}
+  gameManager: {fileID: 0}
   tileSpacing: 5
-  showDebugInfo: 1
---- !u!114 &2035429317558769195
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3898871501952243842}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2351e15a71e27db48ac90e3efc390e72, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  levelManager: {fileID: 0}
+  layerOffsetX: 20
+  layerOffsetY: -20
 --- !u!1 &4223255317234460411
 GameObject:
   m_ObjectHideFlags: 0
@@ -1636,7 +1623,7 @@ RectTransform:
   m_GameObject: {fileID: 8137866186651737619}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.6666667, y: 0.6666667, z: 0.6666667}
+  m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2231277275268671115}

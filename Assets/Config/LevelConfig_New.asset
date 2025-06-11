@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: LevelConfig_New
+  m_EditorClassIdentifier: Assembly-CSharp:MahjongGame.Core:LevelConfiguration
+  layers:
+  - layerName: Bottom
+    width: 6
+    height: 6
+    offset: {x: 0, y: 0}
+    zOffset: 0
+  - layerName: Middle
+    width: 4
+    height: 3
+    offset: {x: 0, y: 0}
+    zOffset: -10
+  - layerName: Top
+    width: 3
+    height: 2
+    offset: {x: 0, y: 0}
+    zOffset: -20
+  tilePrefabs:
+  - {fileID: 2802278517291559487, guid: acc6bebce8528c2428af288aed02fb9d, type: 3}
+  - {fileID: 1056847522066022070, guid: 6b33acbfb257cec42a1d2c4ae2c7c8e2, type: 3}
+  - {fileID: 6560299204296507811, guid: b7dae1f2db078c64fa4dcd8ed49d5b37, type: 3}
+  - {fileID: 5034055483154157442, guid: 17171a43eefb86744b944fdf7a89ecf0, type: 3}
+  - {fileID: 3130808710245842552, guid: 1f2ed280926471f43be67b2f4c5dc882, type: 3}
+  - {fileID: 2994462328856474342, guid: bd628ce2297a6b84180394d7cdc2eae5, type: 3}
+  - {fileID: 7087946107400899397, guid: adf47acef6974774aba9e7984ef10b6c, type: 3}
+  - {fileID: 1953276275392876837, guid: 6997480bea445b94389eca9064908b97, type: 3}
+  - {fileID: 8520581138446398129, guid: db65f0767af790640b6e3879e3ded59d, type: 3}
+  - {fileID: 4202967311377774943, guid: 74fffd30014167f4681f871235897c45, type: 3}
+  minPairsPerType: 2
+  ensureSolvable: 1

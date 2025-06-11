@@ -23,25 +23,6 @@ namespace MahjongGame.Core
 		}
 	}
 
-	[CreateAssetMenu(fileName = "LevelConfig", menuName = "Mahjong/Level Config")]
-	public class LevelConfiguration : ScriptableObject
-	{
-		[Header("Слои уровня")]
-		public List<LayerConfig> layers = new List<LayerConfig>
-		{
-			new LayerConfig("Bottom", 6, 6, Vector2.zero, 0f), 
-            new LayerConfig("Middle", 4, 3, Vector2.zero, -10f),
-            new LayerConfig("Top", 3, 2, Vector2.zero, -20f) 
-        };
-
-		[Header("Префабы плиток")]
-		public List<GameObject> tilePrefabs = new List<GameObject>();
-
-		[Header("Настройки генерации")]
-		public int minPairsPerType = 2; 
-		public bool ensureSolvable = true; 
-	}
-
 	public class TileInfo
 	{
 		public TileController controller; 

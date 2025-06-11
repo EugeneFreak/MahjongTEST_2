@@ -10,15 +10,15 @@ namespace MahjongGame.Core
 	{
 		[Header("Настройки игры")]
 		[SerializeField] private float autoPlayDelay = 1f;
-		
+
 		private LevelManager levelManager;
 		private UIController uiController;
-		private TileInfo selectedTile; 
-		private bool isProcessing = false; 
-		private bool isAutoPlaying = false; 
-		private Coroutine autoPlayCoroutine; 
+		private TileInfo selectedTile;
+		private bool isProcessing = false;
+		private bool isAutoPlaying = false;
+		private Coroutine autoPlayCoroutine;
 
-		public System.Action OnGameWon; 
+		public System.Action OnGameWon;
 
 		private void Awake()
 		{
@@ -108,22 +108,17 @@ namespace MahjongGame.Core
 
 			if (uiController != null && levelManager != null)
 			{
-
-				var prefabs = levelManager.GetLevelConfig()?.tilePrefabs;
+				var prefabs = levelManager.GetLevelConfig()?.TilePrefabs;
 				if (prefabs != null && tile.tileTypeID < prefabs.Count)
 				{
 					var prefab = prefabs[tile.tileTypeID];
-					var prefabController = prefab.GetComponent<TileController>();
-					if (prefabController != null)
+					var iconTransform = prefab.transform.Find("Icon");
+					if (iconTransform != null)
 					{
-						var iconTransform = prefab.transform.Find("Icon");
-						if (iconTransform != null)
+						var iconImage = iconTransform.GetComponent<Image>();
+						if (iconImage != null && iconImage.sprite != null)
 						{
-							var iconImage = iconTransform.GetComponent<Image>();
-							if (iconImage != null && iconImage.sprite != null)
-							{
-								uiController.ShowSelectedTile(iconImage.sprite);
-							}
+							uiController.ShowSelectedTile(iconImage.sprite);
 						}
 					}
 				}
@@ -171,7 +166,10 @@ namespace MahjongGame.Core
 				{
 					var victory = GameObject.FindObjectOfType<Victory>();
 					if (victory != null)
+					{
 						victory.Show();
+						victory.OnPlayAgainClicked = RestartLevel;
+					}
 				}
 
 				return;
@@ -223,11 +221,11 @@ namespace MahjongGame.Core
 				{
 					if (availableTiles[i].tileTypeID == availableTiles[j].tileTypeID)
 					{
-						return true; 
+						return true;
 					}
 				}
 			}
-			return false; 
+			return false;
 		}
 
 		public List<(TileInfo, TileInfo)> FindAvailablePairs()
@@ -291,7 +289,6 @@ namespace MahjongGame.Core
 
 			if (uiController != null)
 				uiController.SetAutoPlayState(false);
-
 		}
 
 		private IEnumerator AutoPlayRoutine()

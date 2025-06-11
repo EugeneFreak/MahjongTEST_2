@@ -1,336 +1,273 @@
 using UnityEngine;
-using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI;
 
 namespace MahjongGame.Core
 {
 	public class LevelManager : MonoBehaviour
 	{
-		[Header("Конфигурация")]
+		[Header("Настройки уровня")]
 		[SerializeField] private LevelConfiguration levelConfig;
-		[SerializeField] private Transform tilesContainer; 
-		[SerializeField] private float tileSize = 120f; 
-		[SerializeField] private float tileSpacing = 5f;
+		[SerializeField] private Transform tilesContainer;
+		[SerializeField] private GameManager gameManager;
 
-		private List<TileInfo[,]> gridLayers; // Сетка для каждого слоя [слой][x,y]
-		private List<TileInfo> allTiles; // Все плитки в игре
-		private Dictionary<int, List<TileInfo>> tilesByType; // Плитки по типам
+		[Header("Настройки сетки")]
+		[SerializeField] private float tileSpacing = 130f;
+		[SerializeField] private float layerOffsetX = 20f;
+		[SerializeField] private float layerOffsetY = -20f;
 
-		public List<TileInfo> AllTiles => allTiles.Where(t => t.controller.gameObject.activeSelf).ToList();
+		private Dictionary<Vector3Int, TileInfo> tileGrid = new Dictionary<Vector3Int, TileInfo>();
+		private List<TileInfo> allTileInfos = new List<TileInfo>();
 
-		public LevelConfiguration GetLevelConfig()
+		public List<TileInfo> AllTiles => allTileInfos.Where(t => t.controller != null && t.controller.gameObject.activeInHierarchy).ToList();
+
+		private void Start()
 		{
-			return levelConfig;
+			if (gameManager == null)
+				gameManager = FindObjectOfType<GameManager>();
+
+			GenerateLevel();
 		}
 
-		private void Awake()
-		{
-			gridLayers = new List<TileInfo[,]>();
-			allTiles = new List<TileInfo>();
-			tilesByType = new Dictionary<int, List<TileInfo>>();
-
-			if (tilesContainer == null)
-			{
-				GameObject container = new GameObject("TilesContainer");
-				container.transform.SetParent(transform);
-				container.transform.localPosition = Vector3.zero;
-				tilesContainer = container.transform;
-			}
-		}
 		public void GenerateLevel()
 		{
 			ClearLevel();
 
-			int totalPositions = 0;
-			foreach (var layer in levelConfig.layers)
+			if (levelConfig == null)
 			{
-				totalPositions += layer.width * layer.height;
+				Debug.LogError("Level configuration is missing!");
+				return;
 			}
 
-			List<int> tileTypes = GenerateTileTypesList(totalPositions);
+			CreatePyramidLayout();
+			CheckAllTilesBlocking();
+		}
 
-			ShuffleList(tileTypes);
+		private void CreatePyramidLayout()
+		{
+			int totalLayers = levelConfig.Layers;
 
-			int tileIndex = 0;
-			for (int layerIndex = 0; layerIndex < levelConfig.layers.Count; layerIndex++)
+			for (int layer = 0; layer < totalLayers; layer++)
 			{
-				var layerConfig = levelConfig.layers[layerIndex];
-				TileInfo[,] grid = new TileInfo[layerConfig.width, layerConfig.height];
+				int gridSize = 8 - layer * 2;
+				int startOffset = layer;
 
-				for (int y = 0; y < layerConfig.height; y++)
+				List<Vector2Int> positions = new List<Vector2Int>();
+
+				for (int row = 0; row < gridSize; row++)
 				{
-					for (int x = 0; x < layerConfig.width; x++)
+					for (int col = 0; col < gridSize; col++)
 					{
-						if (tileIndex < tileTypes.Count)
+						positions.Add(new Vector2Int(startOffset + col, startOffset + row));
+					}
+				}
+
+				List<int> tileTypes = GenerateTileTypes(positions.Count);
+
+				for (int i = 0; i < positions.Count && i < tileTypes.Count; i++)
+				{
+					Vector2Int gridPos = positions[i];
+					float xPos = (gridPos.x - 3.5f) * tileSpacing + layer * layerOffsetX;
+					float yPos = (gridPos.y - 3.5f) * tileSpacing + layer * layerOffsetY;
+
+					GameObject tile = SpawnTile(tileTypes[i], gridPos, layer, new Vector3(xPos, yPos, 0));
+
+					if (tile != null)
+					{
+						TileController controller = tile.GetComponent<TileController>();
+						if (controller != null)
 						{
-							int tileType = tileTypes[tileIndex];
-							GameObject tilePrefab = levelConfig.tilePrefabs[tileType % levelConfig.tilePrefabs.Count];
-
-							Sprite iconSprite = null;
-							var prefabController = tilePrefab.GetComponent<TileController>();
-							if (prefabController != null)
-							{
-								var iconTransform = tilePrefab.transform.Find("Icon");
-								if (iconTransform != null)
-								{
-									var iconImage = iconTransform.GetComponent<Image>();
-									if (iconImage != null)
-									{
-										iconSprite = iconImage.sprite;
-									}
-								}
-							}
-
-							Vector3 position = CalculateTilePosition(x, y, layerIndex);
-							GameObject tileObj = Instantiate(tilePrefab, tilesContainer);
-							tileObj.transform.localPosition = position;
-
-							TileController controller = tileObj.GetComponent<TileController>();
-							if (controller != null)
-							{
-								controller.Initialize(tileType, iconSprite, new Vector2Int(x, y), layerIndex);
-
-								TileInfo tileInfo = new TileInfo(controller, new Vector2Int(x, y), layerIndex, tileType);
-								grid[x, y] = tileInfo;
-								allTiles.Add(tileInfo);
-
-								if (!tilesByType.ContainsKey(tileType))
-									tilesByType[tileType] = new List<TileInfo>();
-								tilesByType[tileType].Add(tileInfo);
-
-								Button btn = controller.GetComponent<Button>();
-								if (btn != null)
-								{
-									int capturedIndex = allTiles.Count - 1;
-									btn.onClick.AddListener(() => OnTileClicked(capturedIndex));
-								}
-							}
-
-							tileIndex++;
+							Vector3Int gridKey = new Vector3Int(gridPos.x, gridPos.y, layer);
+							TileInfo tileInfo = new TileInfo(controller, gridPos, layer, tileTypes[i]);
+							tileGrid[gridKey] = tileInfo;
+							allTileInfos.Add(tileInfo);
 						}
 					}
 				}
-				gridLayers.Add(grid);
 			}
-			UpdateAllTilesBlockState();
 		}
 
-		public void ClearLevel()
-		{
-			foreach (Transform child in tilesContainer)
-			{
-				Destroy(child.gameObject);
-			}
-
-			gridLayers.Clear();
-			allTiles.Clear();
-			tilesByType.Clear();
-		}
-
-		private List<int> GenerateTileTypesList(int totalPositions)
+		private List<int> GenerateTileTypes(int count)
 		{
 			List<int> types = new List<int>();
-			int numTypes = levelConfig.tilePrefabs.Count;
+			int tileTypeCount = 10;
+			int pairsNeeded = count / 2;
 
-			if (totalPositions % 2 != 0)
+			while (types.Count < count)
 			{
-				totalPositions--;
-			}
-
-			int pairsNeeded = totalPositions / 2;
-			int pairsPerType = Mathf.Max(levelConfig.minPairsPerType, pairsNeeded / numTypes);
-
-			for (int i = 0; i < numTypes && types.Count < totalPositions; i++)
-			{
-				int pairsToAdd = Mathf.Min(pairsPerType, (totalPositions - types.Count) / 2);
-				for (int j = 0; j < pairsToAdd * 2; j++)
+				for (int i = 0; i < tileTypeCount && types.Count < count - 1; i++)
 				{
+					types.Add(i);
 					types.Add(i);
 				}
 			}
 
-			while (types.Count < totalPositions)
+			types = types.Take(count).ToList();
+
+			for (int i = 0; i < types.Count; i++)
 			{
-				int randomType = Random.Range(0, numTypes);
-				types.Add(randomType);
-				types.Add(randomType); 
+				int randomIndex = Random.Range(i, types.Count);
+				int temp = types[i];
+				types[i] = types[randomIndex];
+				types[randomIndex] = temp;
 			}
 
 			return types;
 		}
-		private void ShuffleList<T>(List<T> list)
+
+		private GameObject SpawnTile(int tileType, Vector2Int gridPos, int layer, Vector3 worldPos)
 		{
-			for (int i = 0; i < list.Count; i++)
+			GameObject tile = ResourceTileSpawner.SpawnTile(tileType, tilesContainer);
+
+			if (tile == null)
 			{
-				int randomIndex = Random.Range(i, list.Count);
-				T temp = list[i];
-				list[i] = list[randomIndex];
-				list[randomIndex] = temp;
+				Debug.LogError($"Failed to spawn tile type {tileType}");
+				return null;
 			}
-		}
-		private Vector3 CalculateTilePosition(int x, int y, int layerIndex)
-		{
-			var layer = levelConfig.layers[layerIndex];
 
-			float totalTileSize = tileSize + tileSpacing;
-
-			float gridWidth = layer.width * totalTileSize - tileSpacing;
-			float gridHeight = layer.height * totalTileSize - tileSpacing;
-
-			float posX = x * totalTileSize - gridWidth / 2f + tileSize / 2f;
-			float posY = -y * totalTileSize + gridHeight / 2f - tileSize / 2f;
-
-			posX += layer.offset.x;
-			posY += layer.offset.y;
-
-			return new Vector3(posX, posY, layer.zOffset);
-		}
-
-		private void OnTileClicked(int tileIndex)
-		{
-			if (tileIndex < 0 || tileIndex >= allTiles.Count) return;
-
-			TileInfo clickedTile = allTiles[tileIndex];
-
-			GameManager gameManager = FindObjectOfType<GameManager>();
-			if (gameManager != null)
+			RectTransform rectTransform = tile.GetComponent<RectTransform>();
+			if (rectTransform != null)
 			{
-				gameManager.OnTileClicked(clickedTile.controller);
+				rectTransform.anchoredPosition = new Vector2(worldPos.x, worldPos.y);
 			}
-		}
-		public void UpdateAllTilesBlockState()
-		{
-			foreach (var tile in allTiles)
+
+			TileController controller = tile.GetComponent<TileController>();
+			if (controller != null)
 			{
-				if (tile.controller.gameObject.activeSelf)
+				Transform iconTransform = tile.transform.Find("Icon");
+				Sprite iconSprite = null;
+				if (iconTransform != null)
 				{
-					bool isBlocked = IsTileBlocked(tile);
-					tile.controller.SetBlocked(isBlocked);
-				}
-			}
-		}
-
-		private bool IsTileBlocked(TileInfo tile)
-		{
-
-			if (HasTileAbove(tile))
-				return true;
-
-			bool hasLeft = HasTileOnSide(tile, -1);
-			bool hasRight = HasTileOnSide(tile, 1);
-
-			return hasLeft && hasRight;
-		}
-
-		private bool HasTileAbove(TileInfo tile)
-		{
-			for (int layer = tile.layerIndex + 1; layer < gridLayers.Count; layer++)
-			{
-				var grid = gridLayers[layer];
-				var layerConfig = levelConfig.layers[layer];
-
-				for (int x = 0; x < layerConfig.width; x++)
-				{
-					for (int y = 0; y < layerConfig.height; y++)
+					Image iconImage = iconTransform.GetComponent<Image>();
+					if (iconImage != null)
 					{
-						if (grid[x, y] != null && grid[x, y].controller.gameObject.activeSelf)
-						{
-							if (AreTilesOverlapping(tile, grid[x, y]))
-								return true;
-						}
+						iconSprite = iconImage.sprite;
 					}
 				}
+
+				controller.Initialize(tileType, iconSprite, gridPos, layer);
+
+				Button button = tile.GetComponent<Button>();
+				if (button != null)
+				{
+					button.onClick.RemoveAllListeners();
+					button.onClick.AddListener(() => OnTileClicked(controller));
+				}
 			}
 
-			return false;
+			return tile;
 		}
 
-		private bool HasTileOnSide(TileInfo tile, int direction)
+		private void OnTileClicked(TileController tile)
 		{
-			var grid = gridLayers[tile.layerIndex];
-			int checkX = tile.gridPosition.x + direction;
-			int checkY = tile.gridPosition.y;
+			if (tile.IsBlocked) return;
 
-			if (checkX < 0 || checkX >= levelConfig.layers[tile.layerIndex].width)
-				return false;
-
-			var sideTile = grid[checkX, checkY];
-			return sideTile != null && sideTile.controller.gameObject.activeSelf;
-		}
-
-		private bool AreTilesOverlapping(TileInfo tile1, TileInfo tile2)
-		{
-			Vector3 pos1 = tile1.controller.transform.localPosition;
-			Vector3 pos2 = tile2.controller.transform.localPosition;
-
-			float halfSize = tileSize / 2f;
-
-			bool overlapX = Mathf.Abs(pos1.x - pos2.x) < tileSize;
-			bool overlapY = Mathf.Abs(pos1.y - pos2.y) < tileSize;
-
-			return overlapX && overlapY;
-		}
-
-		public void RemoveTile(TileInfo tile)
-		{
-			tile.controller.RemoveTile();
-			UpdateAllTilesBlockState();
+			if (gameManager != null)
+			{
+				gameManager.OnTileClicked(tile);
+			}
 		}
 
 		public TileInfo GetTileInfo(TileController controller)
 		{
-			return allTiles.FirstOrDefault(t => t.controller == controller);
+			return allTileInfos.FirstOrDefault(t => t.controller == controller);
+		}
+
+		private void CheckAllTilesBlocking()
+		{
+			foreach (var tileInfo in allTileInfos)
+			{
+				if (tileInfo.controller != null && tileInfo.controller.gameObject.activeInHierarchy)
+				{
+					bool isBlocked = IsTileBlocked(tileInfo);
+					tileInfo.controller.SetBlocked(isBlocked);
+				}
+			}
+		}
+
+		private bool IsTileBlocked(TileInfo tileInfo)
+		{
+			Vector3Int tilePos = new Vector3Int(tileInfo.gridPosition.x, tileInfo.gridPosition.y, tileInfo.layerIndex);
+
+			if (HasTileOnTop(tilePos))
+				return true;
+
+			bool hasLeft = HasTileOnSide(tilePos, -1);
+			bool hasRight = HasTileOnSide(tilePos, 1);
+
+			return hasLeft && hasRight;
+		}
+
+		private bool HasTileOnTop(Vector3Int position)
+		{
+			Vector3Int topPos = new Vector3Int(position.x, position.y, position.z + 1);
+			return tileGrid.ContainsKey(topPos) && tileGrid[topPos].controller != null &&
+				   tileGrid[topPos].controller.gameObject.activeInHierarchy;
+		}
+
+		private bool HasTileOnSide(Vector3Int position, int direction)
+		{
+			Vector3Int sidePos = new Vector3Int(position.x + direction, position.y, position.z);
+			return tileGrid.ContainsKey(sidePos) && tileGrid[sidePos].controller != null &&
+				   tileGrid[sidePos].controller.gameObject.activeInHierarchy;
+		}
+
+		public void RemoveTile(TileInfo tileInfo)
+		{
+			if (tileInfo.controller != null)
+			{
+				tileInfo.controller.RemoveTile();
+			}
+
+			CheckAllTilesBlocking();
 		}
 
 		public void ReshuffleTiles()
 		{
 			var activeTiles = AllTiles;
-			List<int> tileTypes = new List<int>();
+			List<int> tileTypes = activeTiles.Select(t => t.tileTypeID).ToList();
 
-			foreach (var tile in activeTiles)
+			for (int i = 0; i < tileTypes.Count; i++)
 			{
-				tileTypes.Add(tile.tileTypeID);
+				int randomIndex = Random.Range(i, tileTypes.Count);
+				int temp = tileTypes[i];
+				tileTypes[i] = tileTypes[randomIndex];
+				tileTypes[randomIndex] = temp;
 			}
-
-			ShuffleList(tileTypes);
 
 			for (int i = 0; i < activeTiles.Count; i++)
 			{
-				var tile = activeTiles[i];
-				int newType = tileTypes[i];
-
-				tile.tileTypeID = newType;
-
-				if (levelConfig != null && levelConfig.tilePrefabs.Count > newType)
-				{
-					var prefab = levelConfig.tilePrefabs[newType];
-					var prefabController = prefab.GetComponent<TileController>();
-					if (prefabController != null)
-					{
-						var iconTransform = prefab.transform.Find("Icon");
-						if (iconTransform != null)
-						{
-							var iconImage = iconTransform.GetComponent<Image>();
-							if (iconImage != null && tile.controller.GetIconImage() != null)
-							{
-								tile.controller.GetIconImage().sprite = iconImage.sprite;
-							}
-						}
-					}
-				}
-
-				tile.controller.Initialize(newType, tile.controller.GetIconImage()?.sprite, tile.gridPosition, tile.layerIndex);
+				activeTiles[i].tileTypeID = tileTypes[i];
+				activeTiles[i].controller.Initialize(tileTypes[i], null, activeTiles[i].gridPosition, activeTiles[i].layerIndex);
 			}
+		}
 
-			tilesByType.Clear();
-			foreach (var tile in activeTiles)
+		private void ClearLevel()
+		{
+			foreach (var tileInfo in allTileInfos)
 			{
-				if (!tilesByType.ContainsKey(tile.tileTypeID))
-					tilesByType[tile.tileTypeID] = new List<TileInfo>();
-				tilesByType[tile.tileTypeID].Add(tile);
+				if (tileInfo.controller != null)
+					Destroy(tileInfo.controller.gameObject);
 			}
 
+			allTileInfos.Clear();
+			tileGrid.Clear();
+
+			foreach (Transform child in tilesContainer)
+			{
+				Destroy(child.gameObject);
+			}
+		}
+
+		public void RestartLevel()
+		{
+			GenerateLevel();
+		}
+
+		public LevelConfiguration GetLevelConfig()
+		{
+			return levelConfig;
 		}
 	}
 }
